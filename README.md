@@ -18,7 +18,8 @@ A lightweight, fast, and 100% offline-first Android loyalty cards wallet designe
 - **Flexible Views**: Switch between a 2-column physical card wallet grid and a compact list view.
 - **Link Sharing & Web Viewer**:
   - Share individual card links via WhatsApp or SMS.
-  - Standalone single-page web viewer (`web/index.html`) allowing recipients on iOS or Android to scan or save cards.
+  - Hosted web viewer live on GitHub Pages: [https://itajun.github.io/better-cards/](https://itajun.github.io/better-cards/)
+  - Standalone single-page web viewer (`web/index.html` & `docs/index.html`) allowing recipients on iOS or Android to scan or save cards.
 - **On-Device Camera Scanner & Photo Import**:
   - Live viewfinder with ML Kit barcode scanning.
   - Batch screenshot migration to import cards directly from phone screenshots.
