@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Loyalty Card</title>
+  <meta name="theme-color" content="#1E88E5">
+  <!-- JsBarcode library for 1D barcodes -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <!-- QRCode library for 2D barcodes -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: #0F172A;
+      color: #F8FAFC;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px 16px;
+    }
+    .container {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .header-tag {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #94A3B8;
+      text-align: center;
+    }
+    .card-container {
+      background: linear-gradient(145deg, #1E88E5, #1565C0);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      transition: background 0.3s;
+    }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+    .card-format {
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .barcode-box {
+      background: #FFFFFF;
+      border-radius: 16px;
+      padding: 18px 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      min-height: 140px;
+    }
+    .barcode-box svg, .barcode-box canvas, .barcode-box img {
+      max-width: 100%;
+      height: auto;
+    }
+    .card-bottom {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .card-number-label {
+      font-size: 11px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.75);
+    }
+    .card-number-val {
+      font-size: 20px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #FFFFFF;
+      word-break: break-all;
+    }
+    .card-notes {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.85);
+      background: rgba(0, 0, 0, 0.15);
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+    .action-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    .action-btn:active {
+      transform: scale(0.98);
+    }
+    .btn-wallet {
+      background: #000000;
+      color: #FFFFFF;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .btn-secondary {
+      background: #1E293B;
+      color: #F8FAFC;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      background: #334155;
+      color: #FFFFFF;
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 14px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .fullscreen-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #FFFFFF;
+      z-index: 1000;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+    .fullscreen-modal.active {
+      display: flex;
+    }
+    .fs-close {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      background: #F1F5F9;
+      border: none;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header-tag">Shared Loyalty Card</div>
+
+  <div class="card-container" id="cardContainer">
+    <div class="card-top">
+      <div class="card-title" id="cardName">Store Card</div>
+      <div class="card-format" id="cardFormat">CODE 128</div>
+    </div>
+
+    <div class="barcode-box" id="barcodeBox">
+      <svg id="barcodeSvg"></svg>
+      <div id="qrcodeDiv" style="display:none;"></div>
+    </div>
+
+    <div class="card-bottom">
+      <div class="card-number-label">Card Number</div>
+      <div class="card-number-val" id="cardNumber">--------</div>
+      <div class="card-notes" id="cardNotes" style="display:none;"></div>
+    </div>
+  </div>
+
+  <button class="action-btn btn-secondary" onclick="openFullscreen()">
+    🔍 Tap for Fullscreen Barcode
+  </button>
+
+  <button class="action-btn btn-secondary" onclick="copyCardNumber()">
+    📋 Copy Card Number
+  </button>
+
+  <button class="action-btn btn-wallet" id="btnGoogleWallet" onclick="addToWallet()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M19.5 3.5H4.5C3.4 3.5 2.5 4.4 2.5 5.5V18.5C2.5 19.6 3.4 20.5 4.5 20.5H19.5C20.6 20.5 21.5 19.6 21.5 18.5V5.5C21.5 4.4 20.6 3.5 19.5 3.5Z" stroke="white" stroke-width="2"/>
+      <path d="M2.5 9.5H21.5" stroke="white" stroke-width="2"/>
+    </svg>
+    Save to Google / Apple Wallet
+  </button>
+</div>
+
+<!-- Fullscreen Barcode Modal -->
+<div class="fullscreen-modal" id="fsModal" onclick="closeFullscreen()">
+  <button class="fs-close" onclick="closeFullscreen()">✕</button>
+  <div style="font-size: 24px; font-weight: bold; color: #0F172A; margin-bottom: 24px;" id="fsStoreName">Store</div>
+  <div id="fsBarcodeContainer" style="max-width: 100%; display: flex; justify-content: center;"></div>
+  <div style="font-size: 20px; font-family: monospace; font-weight: bold; color: #334155; margin-top: 24px;" id="fsCardNumber">---</div>
+  <div style="font-size: 13px; color: #64748B; margin-top: 12px;">Screen set to maximum visibility</div>
+</div>
+
+<div class="toast" id="toast">Copied to clipboard</div>
+
+<script>
+  let currentCardData = null;
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  function parseHashPayload() {
+    let raw = window.location.hash;
+    if (raw.startsWith('#c=')) {
+      raw = raw.substring(3);
+    } else {
+      const urlParams = new URLSearchParams(window.location.search);
+      raw = urlParams.get('c') || '';
+    }
+    if (!raw) return null;
+
+    try {
+      // Decode Base64 URL safe
+      let b64 = raw.replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) { b64 += '='; }
+      const jsonStr = decodeURIComponent(escape(atob(b64)));
+      return JSON.parse(jsonStr);
+    } catch (e) {
+      console.error('Failed to parse card data:', e);
+      return null;
+    }
+  }
+
+  function renderCard() {
+    currentCardData = parseHashPayload();
+    if (!currentCardData) {
+      document.getElementById('cardName').textContent = "Demo Card";
+      document.getElementById('cardNumber').textContent = "9312345678901";
+      currentCardData = {
+        n: "Sample Store Card",
+        c: "9312345678901",
+        f: "EAN_13",
+        col: "#1E88E5"
+      };
+    }
+
+    const { n: name, c: number, b: barcodePayload, f: format, col: color, nt: notes, m: memberId } = currentCardData;
+    const payload = barcodePayload || number;
+
+    document.getElementById('cardName').textContent = name || "Loyalty Card";
+    document.getElementById('cardNumber').textContent = number || "";
+    document.getElementById('cardFormat').textContent = (format || "CODE_128").replace('_', ' ');
+
+    if (color) {
+      document.getElementById('cardContainer').style.background = `linear-gradient(145deg, ${color}, #0F172A)`;
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', color);
+    }
+
+    if (notes || memberId) {
+      const notesEl = document.getElementById('cardNotes');
+      notesEl.textContent = (memberId ? `Member ID: ${memberId}\n` : '') + (notes || '');
+      notesEl.style.display = 'block';
+    }
+
+    // Render Barcode
+    const svgEl = document.getElementById('barcodeSvg');
+    const qrDiv = document.getElementById('qrcodeDiv');
+
+    if (format === 'QR_CODE' || format === 'AZTEC' || format === 'DATA_MATRIX') {
+      svgEl.style.display = 'none';
+      qrDiv.style.display = 'block';
+      qrDiv.innerHTML = '';
+      new QRCode(qrDiv, {
+        text: payload,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } else {
+      svgEl.style.display = 'block';
+      qrDiv.style.display = 'none';
+      let jsFormat = "CODE128";
+      if (format === 'EAN_13') jsFormat = "EAN13";
+      else if (format === 'EAN_8') jsFormat = "EAN8";
+      else if (format === 'UPC_A') jsFormat = "UPC";
+      else if (format === 'CODE_39') jsFormat = "CODE39";
+
+      try {
+        JsBarcode(svgEl, payload, {
+          format: jsFormat,
+          lineColor: "#000000",
+          width: 2.2,
+          height: 80,
+          displayValue: false
+        });
+      } catch (e) {
+        // Fallback to Code 128
+        JsBarcode(svgEl, payload, {
+          format: "CODE128",
+          lineColor: "#000000",
+          width: 2.0,
+          height: 80,
+          displayValue: false
+        });
+      }
+    }
+  }
+
+  function copyCardNumber() {
+    if (currentCardData && currentCardData.c) {
+      navigator.clipboard.writeText(currentCardData.c).then(() => {
+        showToast("Card number copied!");
+      });
+    }
+  }
+
+  function openFullscreen() {
+    if (!currentCardData) return;
+    const modal = document.getElementById('fsModal');
+    document.getElementById('fsStoreName').textContent = currentCardData.n;
+    document.getElementById('fsCardNumber').textContent = currentCardData.c;
+
+    const fsContainer = document.getElementById('fsBarcodeContainer');
+    fsContainer.innerHTML = '';
+
+    if (currentCardData.f === 'QR_CODE' || currentCardData.f === 'AZTEC') {
+      new QRCode(fsContainer, {
+        text: currentCardData.c,
+        width: 280,
+        height: 280,
+        colorDark: "#000000",
+        colorLight: "#ffffff"
+      });
+    } else {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      fsContainer.appendChild(svg);
+      try {
+        JsBarcode(svg, currentCardData.c, {
+          format: (currentCardData.f === 'EAN_13') ? 'EAN13' : 'CODE128',
+          width: 2.8,
+          height: 140,
+          displayValue: false
+        });
+      } catch (e) {
+        JsBarcode(svg, currentCardData.c, { format: 'CODE128', width: 2.4, height: 140, displayValue: false });
+      }
+    }
+
+    modal.classList.add('active');
+    // Try requesting wake lock so screen stays bright
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').catch(() => {});
+    }
+  }
+
+  function closeFullscreen() {
+    document.getElementById('fsModal').classList.remove('active');
+  }
+
+  function addToWallet() {
+    if (!currentCardData) return;
+    // Check if user is on iOS or Android
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      showToast("To save on iPhone: Tap Share -> 'Add to Home Screen'");
+    } else {
+      showToast("Card saved! You can also Add to Home Screen for 1-tap access.");
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', renderCard);
+  window.addEventListener('hashchange', renderCard);
+</script>
+</body>
+</html>
